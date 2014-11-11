@@ -230,4 +230,11 @@
     <!-- Default for Settings.System.STATUS_BAR_BATTERY_STYLE -->
     <integer name="def_battery_style">0</integer>
 
+    <!-- Default theme -->
+    <string name="def_theme_package"></string>
+    <string name="def_theme_components"></string>
+
+    <!-- Default value of Settings.System.ENABLE_PEOPLE_LOOKUP -->
+    <integer name="def_people_lookup">1</integer>
+
 </resources>
