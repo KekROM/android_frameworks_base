@@ -1193,6 +1193,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
                 (ViewStub) mStatusBarWindow.findViewById(R.id.keyguard_user_switcher),
                 mKeyguardStatusBar, mNotificationPanel, mUserSwitcherController);
 
+
         // Set up the quick settings tile panel
         mQSPanel = (QSPanel) mStatusBarWindow.findViewById(R.id.quick_settings_panel);
         if (mQSPanel != null) {
@@ -1221,10 +1222,6 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
                     mQSPanel.setTiles(qsh.getTiles());
                 }
             });
-        }
-
-        if (mStatusBarWindowManager != null) {
-            mStatusBarWindowManager.setKeyguardMonitor(mKeyguardMonitor);
         }
 
         // User info. Trigger first load.
@@ -3490,8 +3487,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
 
     private void addStatusBarWindow() {
         makeStatusBarView();
-        mStatusBarWindowManager = new StatusBarWindowManager(mContext);
-        mStatusBarWindowManager.setKeyguardMonitor(mKeyguardMonitor);
+        mStatusBarWindowManager = new StatusBarWindowManager(mContext, mKeyguardMonitor);
         mStatusBarWindowManager.add(mStatusBarWindow, getStatusBarHeight());
     }
 
@@ -3718,6 +3714,122 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
         mHeadsUpNotificationView.dismiss();
     }
 
+<<<<<<< HEAD
+=======
+    private static void copyNotifications(ArrayList<Pair<String, StatusBarNotification>> dest,
+            NotificationData source) {
+        int N = source.size();
+        for (int i = 0; i < N; i++) {
+            NotificationData.Entry entry = source.get(i);
+            dest.add(Pair.create(entry.key, entry.notification));
+        }
+    }
+
+    private void recreateStatusBar() {
+        mRecreating = true;
+
+        if (mMSimNetworkController != null) {
+            mMSimNetworkController.removeAllSignalClusters();
+        } else if (mNetworkController != null) {
+            mNetworkController.removeAllSignalClusters();
+        }
+
+        removeHeadsUpView();
+
+        mStatusBarWindow.removeContent(mStatusBarWindowContent);
+        mStatusBarWindow.clearDisappearingChildren();
+
+        // extract icons from the soon-to-be recreated viewgroup.
+        int nIcons = mStatusIcons != null ? mStatusIcons.getChildCount() : 0;
+        ArrayList<StatusBarIcon> icons = new ArrayList<StatusBarIcon>(nIcons);
+        ArrayList<String> iconSlots = new ArrayList<String>(nIcons);
+        RankingMap rankingMap = mNotificationData.getRankingMap();
+        for (int i = 0; i < nIcons; i++) {
+            StatusBarIconView iconView = (StatusBarIconView)mStatusIcons.getChildAt(i);
+            icons.add(iconView.getStatusBarIcon());
+            iconSlots.add(iconView.getStatusBarSlot());
+        }
+
+        removeAllViews(mStatusBarWindowContent);
+
+        // extract notifications.
+        int nNotifs = mNotificationData.size();
+        ArrayList<Pair<String, StatusBarNotification>> notifications =
+                new ArrayList<Pair<String, StatusBarNotification>>(nNotifs);
+        copyNotifications(notifications, mNotificationData);
+        mNotificationData.clear();
+
+        // Halts the old ticker. A new ticker is created in makeStatusBarView() so
+        // this MUST happen before makeStatusBarView();
+        haltTicker();
+
+        makeStatusBarView();
+        repositionNavigationBar();
+        addHeadsUpView();
+        if (mNavigationBarView != null) {
+            mNavigationBarView.updateResources(getNavbarThemedResources());
+        }
+
+        // recreate StatusBarIconViews.
+        for (int i = 0; i < nIcons; i++) {
+            StatusBarIcon icon = icons.get(i);
+            String slot = iconSlots.get(i);
+            addIcon(slot, i, i, icon);
+        }
+
+        // recreate notifications.
+        for (int i = 0; i < nNotifs; i++) {
+            Pair<String, StatusBarNotification> notifData = notifications.get(i);
+            addNotificationViews(createNotificationViews(notifData.second), rankingMap);
+        }
+        mNotificationData.filterAndSort();
+
+        setAreThereNotifications();
+
+        mStatusBarWindow.addContent(mStatusBarWindowContent);
+
+        updateExpandedViewPos(EXPANDED_LEAVE_ALONE);
+        checkBarModes();
+
+        // Stop the command queue until the new status bar container settles and has a layout pass
+        mCommandQueue.pause();
+        mStatusBarWindow.requestLayout();
+        mStatusBarWindow.getViewTreeObserver().addOnGlobalLayoutListener(
+                new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                mStatusBarWindow.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                mCommandQueue.resume();
+                mRecreating = false;
+            }
+        });
+        // restart the keyguard so it picks up the newly created ScrimController
+        startKeyguard();
+
+        // if the keyguard was showing while this change occurred we'll need to do some extra work
+        if (mState == StatusBarState.KEYGUARD) {
+            // this will make sure the keyguard is showing
+            showKeyguard();
+            // The following views need to be invisible if the keyguard is showing
+            // These views were hidden but re-inflating the status bar changed them back to visible
+            mClockView.setVisibility(View.INVISIBLE);
+            mNotificationIconArea.setVisibility(View.INVISIBLE);
+            mSystemIconArea.setVisibility(View.INVISIBLE);
+        }
+    }
+
+    private void removeAllViews(ViewGroup parent) {
+        int N = parent.getChildCount();
+        for (int i = 0; i < N; i++) {
+            View child = parent.getChildAt(i);
+            if (child instanceof ViewGroup) {
+                removeAllViews((ViewGroup) child);
+            }
+        }
+        parent.removeAllViews();
+    }
+
+>>>>>>> 38d4e08... Revert "systemui: Fix KeyguardMonitor callbacks during configuration changes"
     /**
      * Reload some of our resources when the configuration changes.
      *
