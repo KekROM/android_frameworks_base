@@ -592,7 +592,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
 
         mNavigationBarView.setDisabledFlags(mDisabled);
         mNavigationBarView.setBar(this);
-        addNavigationBar();
+        addNavigationBar(true); // dynamically adding nav bar, reset System UI visibility!
     }
 
     // ensure quick settings is disabled until the current user makes it through the setup wizard
@@ -818,7 +818,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
         // TODO: use MediaSessionManager.SessionListener to hook us up to future updates
         // in session state
 
-        addNavigationBar();
+        addNavigationBar(false);
 
         SettingsObserver observer = new SettingsObserver(mHandler);
         observer.observe();
@@ -1505,20 +1505,28 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
         }
     }
 
-    private void prepareNavigationBarView() {
+    private void prepareNavigationBarView(boolean forceReset) {
         mNavigationBarView.reorient();
         mNavigationBarView.setListeners(mRecentsClickListener, mRecentsPreloadOnTouchListener,
                 mLongPressBackRecentsListener, mHomeActionListener);
+
+        if (forceReset) {
+            // Nav Bar was added dynamically - we need to reset the mSystemUiVisibility and call
+            // setSystemUiVisibility so that mNavigationBarMode is set to the correct value
+            int newVal = mSystemUiVisibility;
+            mSystemUiVisibility = 0;
+            setSystemUiVisibility(newVal, SYSTEM_UI_VISIBILITY_MASK);
+        }
 
         updateSearchPanel();
     }
 
     // For small-screen devices (read: phones) that lack hardware navigation buttons
-    private void addNavigationBar() {
+    private void addNavigationBar(boolean forceReset) {
         if (DEBUG) Log.v(TAG, "addNavigationBar: about to add " + mNavigationBarView);
         if (mNavigationBarView == null) return;
 
-        prepareNavigationBarView();
+        prepareNavigationBarView(forceReset);
 
         mWindowManager.addView(mNavigationBarView, getNavigationBarLayoutParams());
     }
@@ -1534,7 +1542,7 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
     private void repositionNavigationBar() {
         if (mNavigationBarView == null || !mNavigationBarView.isAttachedToWindow()) return;
 
-        prepareNavigationBarView();
+        prepareNavigationBarView(false);
 
         mWindowManager.updateViewLayout(mNavigationBarView, getNavigationBarLayoutParams());
     }
@@ -3720,122 +3728,6 @@ public class PhoneStatusBar extends BaseStatusBar implements DemoMode,
         mHeadsUpNotificationView.dismiss();
     }
 
-<<<<<<< HEAD
-=======
-    private static void copyNotifications(ArrayList<Pair<String, StatusBarNotification>> dest,
-            NotificationData source) {
-        int N = source.size();
-        for (int i = 0; i < N; i++) {
-            NotificationData.Entry entry = source.get(i);
-            dest.add(Pair.create(entry.key, entry.notification));
-        }
-    }
-
-    private void recreateStatusBar() {
-        mRecreating = true;
-
-        if (mMSimNetworkController != null) {
-            mMSimNetworkController.removeAllSignalClusters();
-        } else if (mNetworkController != null) {
-            mNetworkController.removeAllSignalClusters();
-        }
-
-        removeHeadsUpView();
-
-        mStatusBarWindow.removeContent(mStatusBarWindowContent);
-        mStatusBarWindow.clearDisappearingChildren();
-
-        // extract icons from the soon-to-be recreated viewgroup.
-        int nIcons = mStatusIcons != null ? mStatusIcons.getChildCount() : 0;
-        ArrayList<StatusBarIcon> icons = new ArrayList<StatusBarIcon>(nIcons);
-        ArrayList<String> iconSlots = new ArrayList<String>(nIcons);
-        RankingMap rankingMap = mNotificationData.getRankingMap();
-        for (int i = 0; i < nIcons; i++) {
-            StatusBarIconView iconView = (StatusBarIconView)mStatusIcons.getChildAt(i);
-            icons.add(iconView.getStatusBarIcon());
-            iconSlots.add(iconView.getStatusBarSlot());
-        }
-
-        removeAllViews(mStatusBarWindowContent);
-
-        // extract notifications.
-        int nNotifs = mNotificationData.size();
-        ArrayList<Pair<String, StatusBarNotification>> notifications =
-                new ArrayList<Pair<String, StatusBarNotification>>(nNotifs);
-        copyNotifications(notifications, mNotificationData);
-        mNotificationData.clear();
-
-        // Halts the old ticker. A new ticker is created in makeStatusBarView() so
-        // this MUST happen before makeStatusBarView();
-        haltTicker();
-
-        makeStatusBarView();
-        repositionNavigationBar();
-        addHeadsUpView();
-        if (mNavigationBarView != null) {
-            mNavigationBarView.updateResources(getNavbarThemedResources());
-        }
-
-        // recreate StatusBarIconViews.
-        for (int i = 0; i < nIcons; i++) {
-            StatusBarIcon icon = icons.get(i);
-            String slot = iconSlots.get(i);
-            addIcon(slot, i, i, icon);
-        }
-
-        // recreate notifications.
-        for (int i = 0; i < nNotifs; i++) {
-            Pair<String, StatusBarNotification> notifData = notifications.get(i);
-            addNotificationViews(createNotificationViews(notifData.second), rankingMap);
-        }
-        mNotificationData.filterAndSort();
-
-        setAreThereNotifications();
-
-        mStatusBarWindow.addContent(mStatusBarWindowContent);
-
-        updateExpandedViewPos(EXPANDED_LEAVE_ALONE);
-        checkBarModes();
-
-        // Stop the command queue until the new status bar container settles and has a layout pass
-        mCommandQueue.pause();
-        mStatusBarWindow.requestLayout();
-        mStatusBarWindow.getViewTreeObserver().addOnGlobalLayoutListener(
-                new ViewTreeObserver.OnGlobalLayoutListener() {
-            @Override
-            public void onGlobalLayout() {
-                mStatusBarWindow.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                mCommandQueue.resume();
-                mRecreating = false;
-            }
-        });
-        // restart the keyguard so it picks up the newly created ScrimController
-        startKeyguard();
-
-        // if the keyguard was showing while this change occurred we'll need to do some extra work
-        if (mState == StatusBarState.KEYGUARD) {
-            // this will make sure the keyguard is showing
-            showKeyguard();
-            // The following views need to be invisible if the keyguard is showing
-            // These views were hidden but re-inflating the status bar changed them back to visible
-            mClockView.setVisibility(View.INVISIBLE);
-            mNotificationIconArea.setVisibility(View.INVISIBLE);
-            mSystemIconArea.setVisibility(View.INVISIBLE);
-        }
-    }
-
-    private void removeAllViews(ViewGroup parent) {
-        int N = parent.getChildCount();
-        for (int i = 0; i < N; i++) {
-            View child = parent.getChildAt(i);
-            if (child instanceof ViewGroup) {
-                removeAllViews((ViewGroup) child);
-            }
-        }
-        parent.removeAllViews();
-    }
-
->>>>>>> 38d4e08... Revert "systemui: Fix KeyguardMonitor callbacks during configuration changes"
     /**
      * Reload some of our resources when the configuration changes.
      *
