@@ -91,6 +91,7 @@ public class TimeController extends StateController {
     public synchronized void maybeStartTrackingJob(JobStatus job) {
         if (job.hasTimingDelayConstraint() || job.hasDeadlineConstraint()) {
             maybeStopTrackingJob(job);
+            boolean isInsert = false;
             ListIterator<JobStatus> it = mTrackedJobs.listIterator(mTrackedJobs.size());
             while (it.hasPrevious()) {
                 JobStatus ts = it.previous();
@@ -98,6 +99,10 @@ public class TimeController extends StateController {
                     // Insert
                     break;
                 }
+            }
+            if(isInsert)
+            {
+                it.next();
             }
             it.add(job);
             maybeUpdateAlarms(
