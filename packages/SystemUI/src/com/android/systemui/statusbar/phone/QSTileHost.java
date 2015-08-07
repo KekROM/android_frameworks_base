@@ -272,9 +272,6 @@ public class QSTileHost implements QSTile.Host {
         if (!QSUtils.getAvailableTiles(mContext).contains(tileSpec)) {
             return null;
         }
-        if (QSUtils.isDynamicQsTile(tileSpec)) {
-            return null;
-        }
 
         switch (tileSpec) {
             case QSConstants.TILE_WIFI:

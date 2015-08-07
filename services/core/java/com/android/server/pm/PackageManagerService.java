@@ -501,12 +501,7 @@ public class PackageManagerService extends IPackageManager.Stub {
 
     boolean mResolverReplaced = false;
 
-<<<<<<< HEAD
     private AppOpsManager mAppOps;
-=======
-    private Map<String, Long> mAvailableCommonResources = new ArrayMap<String, Long>();
-
-    private ThemeConfig mBootThemeConfig;
 
     final ResolveInfo mPreLaunchCheckResolveInfo = new ResolveInfo();
     ComponentName mCustomPreLaunchComponentName;
@@ -514,7 +509,6 @@ public class PackageManagerService extends IPackageManager.Stub {
             Collections.synchronizedSet(new ArraySet<String>());
 
     boolean mPreLaunchCheckPackagesReplaced = false;
->>>>>>> 3e6ec90... packagemanager: Use ArrayMap/ArraySet as per AOSP
 
     ArrayList<ComponentName> mDisabledComponentsList;
 
